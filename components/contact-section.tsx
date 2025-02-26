@@ -93,7 +93,7 @@ export function ContactSection() {
                     </svg>
                   </div>
                   <h3 className="mb-2 text-xl font-semibold">Message Sent!</h3>
-                  <p className="text-muted-foreground">Thank you for reaching out. I'll get back to you soon.</p>
+                  <p className="text-muted-foreground">Thank you for reaching out. I&apos;ll get back to you soon.</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
