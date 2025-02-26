@@ -15,7 +15,7 @@ export function HeroSection() {
           className="flex flex-col justify-center"
         >
           <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-6xl">
-            Hi, I'm <span className="text-primary">Nayaka Ghana Subrata</span>
+            Hi, I&apos;m <span className="text-primary">Nayaka Ghana Subrata</span>
           </h1>
           <p className="mb-6 text-xl text-muted-foreground">
             A developer and editor passionate about creating delightful experiences through code and storytelling.
