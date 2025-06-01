@@ -1,3 +1,4 @@
+import React from 'react'
 import { notFound } from 'next/navigation'
 import fs from 'fs'
 import path from 'path'
@@ -84,12 +85,12 @@ const tagColors: Record<string, string> = {
 }
 
 // Simple markdown renderer
-function renderContent(content: string) {
+function renderContent(content: string): React.ReactElement[] {
   // Remove frontmatter if it exists
   content = content.replace(/^---[\s\S]*?---/, '').trim()
   
   const lines = content.split('\n')
-  const elements: JSX.Element[] = []
+  const elements: React.ReactElement[] = []
   let inCodeBlock = false
   let codeBlockContent: string[] = []
   
