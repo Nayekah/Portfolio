@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Github, Linkedin, Mail } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import Image from "next/image"
 
 const roles = [
   "Video Editor",
@@ -128,7 +129,14 @@ export function HeroSection() {
           className="flex items-center justify-center"
         >
           <div className="relative h-64 w-64 overflow-hidden rounded-full border-4 border-primary md:h-80 md:w-80">
-            <img src="/images/profiles.jpg" alt="Your Name" className="h-full w-full object-cover" />
+            <Image 
+              src="/images/profiles.jpg" 
+              alt="Nayaka Ghana Subrata" 
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 768px) 256px, 320px"
+            />
           </div>
         </motion.div>
       </div>

@@ -5,6 +5,7 @@ import { Github, Twitter } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 
 const projects = [
   {
@@ -87,11 +88,13 @@ export function ProjectsSection() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
               <Card className="h-full overflow-hidden transition-all duration-200 hover:shadow-md">
-                <div className="aspect-video overflow-hidden">
-                  <img
-                    src={project.image || "/placeholder.svg"}
+                <div className="aspect-video overflow-hidden relative">
+                  <Image
+                    src={project.image}
                     alt={project.title}
-                    className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                    fill
+                    className="object-cover transition-transform duration-300 hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
                 <CardHeader>
