@@ -115,7 +115,7 @@ Sent from nayekah.dev portfolio contact form
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mx-auto max-w-2xl text-muted-foreground"
         >
-          Have a project in mind or want to collaborate? Feel free to reach out. I'll get back to you as soon as possible!
+          Have a project in mind or want to collaborate? Feel free to reach out!
         </motion.p>
       </div>
 
