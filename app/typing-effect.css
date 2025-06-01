@@ -1,0 +1,75 @@
+/* Typing Effect Styles with Purple Theme */
+.typing-container {
+  position: relative;
+  display: inline-block;
+}
+
+.typing-text {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease-in-out infinite;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  margin-left: 2px;
+  animation: blink 1.2s infinite;
+  vertical-align: text-top;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .typing-text {
+    font-size: 1.5rem;
+  }
+}
+
+/* Dark mode adjustments */
+.dark .typing-text {
+  background: linear-gradient(135deg, #a855f7 0%, #c084fc 50%, #ddd6fe 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .typing-cursor {
+  background: linear-gradient(135deg, #a855f7, #c084fc);
+}
+
+/* Smooth transitions */
+.typing-container * {
+  transition: all 0.2s ease;
+}
+
+/* Add subtle purple glow effect */
+.typing-text {
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.dark .typing-text {
+  text-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
+}

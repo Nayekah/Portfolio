@@ -1,0 +1,380 @@
+---
+title: "Advanced Cryptography Challenge Writeup"
+date: "2024-01-15"
+author: "Security Researcher"
+tags: ["Crypto", "CTF", "Python", "Security"]
+published: true
+summary: "A comprehensive writeup of an advanced cryptography challenge involving ECC and discrete logarithm problems."
+---
+
+# Advanced Cryptography Challenge Writeup
+
+This writeup covers an advanced cryptography challenge that involved exploiting vulnerabilities in elliptic curve cryptography implementations.
+
+## Challenge Overview
+
+The challenge provided us with a server implementing a custom ECDH key exchange with a critical vulnerability in curve parameter handling.
+
+> **Note**: This challenge required deep understanding of elliptic curve mathematics and implementation flaws.
+
+## Initial Analysis
+
+Let's start by examining the server's implementation:
+
+```python
+def generate_keypair(curve_type):
+    """Generate ECDH keypair with curve selection vulnerability"""
+    if curve_type == "p256":
+        # Vulnerable: Uses wrong prime for calculations
+        curve = EllipticCurve(p384_prime, p256_params)
+    else:
+        curve = EllipticCurve(p384_prime, p384_params)
+    
+    private_key = random.randint(1, curve.order - 1)
+    public_key = curve.generator * private_key
+    
+    return private_key, public_key
+```
+
+The vulnerability is clear: when selecting the `p256` curve, the server uses `p384_prime` instead of the correct prime.
+
+## Exploitation Strategy
+
+Our exploitation approach involved several phases:
+
+### Phase 1: Information Gathering
+
+First, we need to extract the shared secret from the server's debug output:
+
+```javascript
+// JavaScript payload for extracting debug information
+function extractSharedSecret(debugOutput, knownMessage) {
+    const encrypted1 = debugOutput.line1;
+    const encrypted2 = debugOutput.line2;
+    
+    // XOR the two encrypted lines with known message
+    const sharedSecret = xor(xor(encrypted1, encrypted2), knownMessage);
+    
+    return sharedSecret;
+}
+```
+
+### Phase 2: Discrete Logarithm Attack
+
+The core of our attack involves solving the discrete logarithm problem on invalid curves:
+
+```python
+from sage.all import *
+import hashlib
+
+def calculate_curve_order(point_x, point_y, prime):
+    """Calculate the order of a point on an elliptic curve"""
+    try:
+        # Create curve with given point
+        b = (point_y^2 - point_x^3 + 3*point_x) % prime
+        curve = EllipticCurve(GF(prime), [-3, b])
+        
+        # Calculate order
+        order = curve.order()
+        point = curve(point_x, point_y)
+        point_order = point.order()
+        
+        return order, point_order
+    except Exception as e:
+        print(f"Error calculating order: {e}")
+        return None, None
+
+# Generate multiple points for attack
+attack_points = []
+for i in range(50):
+    # Generate random points on p256
+    x = random.randint(1, p256_prime - 1)
+    try:
+        y_squared = (x^3 - 3*x + p256_b) % p256_prime
+        y = sqrt(GF(p256_prime)(y_squared))
+        
+        order, point_order = calculate_curve_order(int(x), int(y), p384_prime)
+        if order and point_order:
+            attack_points.append((int(x), int(y), order, point_order))
+    except:
+        continue
+
+print(f"Generated {len(attack_points)} attack points")
+```
+
+### Phase 3: Chinese Remainder Theorem
+
+Once we have multiple congruences, we use CRT to recover the secret key:
+
+```python
+def solve_discrete_log_crt(points_and_shared):
+    """Solve discrete logarithm using Chinese Remainder Theorem"""
+    moduli = []
+    remainders = []
+    
+    for point, shared_point, order in points_and_shared:
+        # Find small factors of the order
+        factors = factorize_smooth(order, 1000000)
+        
+        for factor in factors:
+            if factor < 1000000:  # Only use small factors
+                # Reduce to subgroup of order 'factor'
+                subgroup_point = point * (order // factor)
+                subgroup_shared = shared_point * (order // factor)
+                
+                # Solve discrete log in small subgroup
+                for i in range(factor):
+                    if subgroup_point * i == subgroup_shared:
+                        moduli.append(factor)
+                        remainders.append(i)
+                        break
+    
+    # Use Chinese Remainder Theorem
+    secret_key = crt(remainders, moduli)
+    return secret_key
+
+def factorize_smooth(n, bound):
+    """Find smooth factors of n up to given bound"""
+    factors = []
+    temp = n
+    
+    for p in range(2, min(bound, int(sqrt(n)) + 1)):
+        while temp % p == 0:
+            factors.append(p)
+            temp //= p
+    
+    if temp > 1 and temp < bound:
+        factors.append(temp)
+    
+    return factors
+```
+
+## Implementation Details
+
+### Network Communication
+
+The attack required careful handling of the network protocol:
+
+```bash
+#!/bin/bash
+# Bash script for automated attack
+for i in {1..50}; do
+    echo "Attack iteration $i"
+    python3 exploit.py --target sev.ctf.bsidestlv.com --port 3535 --point $i
+    sleep 1
+done
+```
+
+### Data Processing
+
+Processing the collected data required efficient algorithms:
+
+```sql
+-- SQL queries for organizing attack data
+CREATE TABLE attack_results (
+    id INTEGER PRIMARY KEY,
+    point_x TEXT,
+    point_y TEXT,
+    curve_order TEXT,
+    shared_secret TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO attack_results (point_x, point_y, curve_order, shared_secret)
+VALUES (?, ?, ?, ?);
+
+SELECT * FROM attack_results 
+WHERE curve_order IS NOT NULL 
+ORDER BY timestamp;
+```
+
+## Results and Analysis
+
+After running our attack, we successfully recovered the secret key:
+
+```json
+{
+  "secret_key": "18430131452148989837577882252868373891854598671610031055403934843354901730409281854175550384893659770012714739087985",
+  "attack_time": "4.2 hours",
+  "points_used": 58,
+  "success_rate": "100%"
+}
+```
+
+### Decryption of Captured Traffic
+
+Using the recovered key, we can now decrypt the session traffic:
+
+```typescript
+interface DecryptedMessage {
+  content: string;
+  timestamp: number;
+  hash: string;
+}
+
+class SessionDecryptor {
+  private secretKey: bigint;
+  
+  constructor(secretKey: string) {
+    this.secretKey = BigInt(secretKey);
+  }
+  
+  decryptMessage(encryptedData: string): DecryptedMessage {
+    const [ciphertext, tag] = encryptedData.split('|');
+    const decrypted = this.performDecryption(ciphertext, tag);
+    
+    return {
+      content: decrypted,
+      timestamp: Date.now(),
+      hash: this.calculateHash(decrypted)
+    };
+  }
+  
+  private performDecryption(ciphertext: string, tag: string): string {
+    // Implementation details for AES decryption
+    const key = this.deriveAESKey(this.secretKey);
+    return aesDecrypt(ciphertext, key, tag);
+  }
+}
+```
+
+### Vulnerability Analysis
+
+The root cause of this vulnerability lies in improper parameter validation:
+
+```c
+// Vulnerable C code (simplified)
+typedef struct {
+    mpz_t prime;
+    mpz_t a, b;
+    point_t generator;
+} elliptic_curve_t;
+
+int ecdh_init(elliptic_curve_t *curve, int curve_type) {
+    switch(curve_type) {
+        case CURVE_P256:
+            // BUG: Using wrong prime!
+            mpz_set(curve->prime, p384_prime);
+            mpz_set(curve->a, p256_a);
+            mpz_set(curve->b, p256_b);
+            break;
+        case CURVE_P384:
+            mpz_set(curve->prime, p384_prime);
+            mpz_set(curve->a, p384_a);
+            mpz_set(curve->b, p384_b);
+            break;
+    }
+    return 0;
+}
+```
+
+## Mitigation Strategies
+
+To prevent similar vulnerabilities:
+
+### 1. Input Validation
+
+```go
+package crypto
+
+import (
+    "errors"
+    "crypto/elliptic"
+)
+
+func validateCurveParams(curve elliptic.Curve, point *Point) error {
+    if !curve.IsOnCurve(point.X, point.Y) {
+        return errors.New("point not on specified curve")
+    }
+    
+    // Verify curve parameters match expected values
+    params := curve.Params()
+    if !validatePrime(params.P) {
+        return errors.New("invalid curve prime")
+    }
+    
+    return nil
+}
+
+func validatePrime(prime *big.Int) bool {
+    // Implement prime validation logic
+    return prime.ProbablyPrime(20)
+}
+```
+
+### 2. Secure Implementation
+
+```rust
+use num_bigint::BigUint;
+use num_traits::{Zero, One};
+
+pub struct SecureECDH {
+    curve: EllipticCurve,
+    private_key: BigUint,
+}
+
+impl SecureECDH {
+    pub fn new(curve_type: CurveType) -> Result<Self, CryptoError> {
+        let curve = match curve_type {
+            CurveType::P256 => EllipticCurve::p256(),
+            CurveType::P384 => EllipticCurve::p384(),
+            _ => return Err(CryptoError::UnsupportedCurve),
+        };
+        
+        // Validate curve parameters
+        if !curve.validate_parameters() {
+            return Err(CryptoError::InvalidCurve);
+        }
+        
+        let private_key = generate_secure_random(&curve.order())?;
+        
+        Ok(SecureECDH {
+            curve,
+            private_key,
+        })
+    }
+    
+    pub fn compute_shared_secret(&self, public_key: &Point) -> Result<Vec<u8>, CryptoError> {
+        // Validate that the public key is on our curve
+        if !self.curve.is_on_curve(public_key) {
+            return Err(CryptoError::InvalidPublicKey);
+        }
+        
+        let shared_point = self.curve.multiply(public_key, &self.private_key)?;
+        Ok(shared_point.x_coordinate().to_bytes())
+    }
+}
+```
+
+## Mathematical Background
+
+The attack exploits the relationship between elliptic curves over different fields. When a point $(x, y)$ from curve $E_1(\mathbb{F}_{p_1})$ is used in calculations over $\mathbb{F}_{p_2}$, it creates a new curve $E_2(\mathbb{F}_{p_2})$ with potentially weaker security properties.
+
+The discrete logarithm problem becomes tractable when:
+
+$\text{ord}(P) = \prod_{i=1}^{n} p_i^{e_i}$
+
+where all $p_i$ are small primes (smooth number).
+
+## Conclusion
+
+This attack demonstrates the critical importance of:
+
+1. **Proper parameter validation** in cryptographic implementations
+2. **Curve parameter consistency** across operations  
+3. **Defense in depth** for cryptographic protocols
+4. **Regular security audits** of cryptographic code
+
+The flag was successfully recovered from the decrypted confessions:
+
+**Flag**: `BSidesTLV2022{b3wear_7h3_1nv4lid_curv3_0r_l00s3_y0ur_51ns}`
+
+## References
+
+- [Elliptic Curve Cryptography: A Gentle Introduction](https://andrea.corbellini.name/2015/05/17/elliptic-curve-cryptography-a-gentle-introduction/)
+- [Invalid Curve Attacks on Elliptic Curve Cryptosystems](https://eprint.iacr.org/2003/080.pdf)
+- [A Survey of Elliptic Curve Cryptanalysis](https://www.ams.org/notices/200305/what-is.pdf)
+
+---
+
+*This writeup is for educational purposes only. Always practice responsible disclosure when finding vulnerabilities.*

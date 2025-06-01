@@ -3,8 +3,63 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Github, Linkedin, Mail } from "lucide-react"
 import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
+
+const roles = [
+  "Video Editor",
+  "Cryptography Enthusiast", 
+  "Blockchain Developer",
+  "Cybersecurity Researcher",
+  "Creative Designer",
+  "Security Analyst"
+]
 
 export function HeroSection() {
+  const [currentRole, setCurrentRole] = useState(0)
+  const [displayText, setDisplayText] = useState("")
+  const [isTyping, setIsTyping] = useState(true)
+  const [showCursor, setShowCursor] = useState(true)
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout
+
+    if (isTyping) {
+      // Typing effect
+      if (displayText.length < roles[currentRole].length) {
+        timeout = setTimeout(() => {
+          setDisplayText(roles[currentRole].slice(0, displayText.length + 1))
+        }, 80 + Math.random() * 40) // Variable typing speed for natural feel
+      } else {
+        // Pause at end of word
+        timeout = setTimeout(() => {
+          setIsTyping(false)
+        }, 2500)
+      }
+    } else {
+      // Erasing effect
+      if (displayText.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayText(displayText.slice(0, -1))
+        }, 30)
+      } else {
+        // Move to next role
+        setCurrentRole((prev) => (prev + 1) % roles.length)
+        setIsTyping(true)
+      }
+    }
+
+    return () => clearTimeout(timeout)
+  }, [currentRole, displayText, isTyping])
+
+  // Cursor blinking effect
+  useEffect(() => {
+    const cursorInterval = setInterval(() => {
+      setShowCursor(prev => !prev)
+    }, 600)
+
+    return () => clearInterval(cursorInterval)
+  }, [])
+
   return (
     <section className="py-16 md:py-32">
       <div className="grid gap-8 md:grid-cols-2 md:gap-12">
@@ -17,6 +72,21 @@ export function HeroSection() {
           <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-6xl">
             Hi, I&apos;m <span className="text-primary">Nayaka Ghana Subrata</span>
           </h1>
+          
+          {/* Typing Effect */}
+          <div className="mb-6 h-12 flex items-center typing-container">
+            <span className="text-2xl md:text-3xl font-semibold text-muted-foreground">
+              I&apos;m a{" "}
+              <span className="typing-text font-bold">
+                {displayText}
+              </span>
+              <span 
+                className={`typing-cursor ${showCursor ? 'opacity-100' : 'opacity-0'}`}
+              >
+              </span>
+            </span>
+          </div>
+          
           <p className="mb-6 text-xl text-muted-foreground">
             A developer and editor passionate about creating delightful experiences through code and storytelling.
           </p>
@@ -65,4 +135,3 @@ export function HeroSection() {
     </section>
   )
 }
-

@@ -32,19 +32,25 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
           <Link
-            href="#skills"
+            href="/#skills"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Skills
           </Link>
           <Link
-            href="#projects"
+            href="/#projects"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Projects
           </Link>
           <Link
-            href="#contact"
+            href="/blog"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Blog
+          </Link>
+          <Link
+            href="/#contact"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Contact
@@ -71,21 +77,28 @@ export function Header() {
         <div className="container mx-auto border-t px-4 py-4 md:hidden">
           <nav className="flex flex-col space-y-4">
             <Link
-              href="#skills"
+              href="/#skills"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Skills
             </Link>
             <Link
-              href="#projects"
+              href="/#projects"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Projects
             </Link>
             <Link
-              href="#contact"
+              href="/blog"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Blog
+            </Link>
+            <Link
+              href="/#contact"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setIsMobileMenuOpen(false)}
             >
@@ -97,4 +110,3 @@ export function Header() {
     </header>
   )
 }
-
