@@ -4,11 +4,13 @@ import type React from "react"
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Send } from "lucide-react"
+import { Send, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import emailjs from '@emailjs/browser'
 
 export function ContactSection() {
   const [formState, setFormState] = useState({
@@ -18,27 +20,80 @@ export function ContactSection() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState("")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormState({
       ...formState,
       [e.target.name]: e.target.value,
     })
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError("")
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Validation
+    if (!formState.name.trim() || !formState.email.trim() || !formState.message.trim()) {
+      setError("Please fill in all fields")
+      setIsSubmitting(false)
+      return
+    }
 
-    setIsSubmitting(false)
-    setIsSubmitted(true)
-    setFormState({ name: "", email: "", message: "" })
+    if (!formState.email.includes('@')) {
+      setError("Please enter a valid email address")
+      setIsSubmitting(false)
+      return
+    }
 
-    // Reset success message after 5 seconds
-    setTimeout(() => setIsSubmitted(false), 5000)
+    try {
+      // EmailJS configuration
+      const templateParams = {
+        from_name: formState.name,
+        from_email: formState.email,
+        message: formState.message,
+        to_email: 'nayakaghana39@gmail.com',
+        reply_to: formState.email
+      }
+
+      await emailjs.send(
+        'service_portfolio', // Service ID (you'll need to create this)
+        'template_contact',   // Template ID (you'll need to create this)
+        templateParams,
+        'YOUR_PUBLIC_KEY'     // Public Key (you'll need to get this)
+      )
+
+      setIsSubmitted(true)
+      setFormState({ name: "", email: "", message: "" })
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => setIsSubmitted(false), 5000)
+      
+    } catch (error) {
+      console.error('EmailJS Error:', error)
+      
+      // Fallback to mailto if EmailJS fails
+      const subject = encodeURIComponent(`Portfolio Contact from ${formState.name}`)
+      const body = encodeURIComponent(`
+Name: ${formState.name}
+Email: ${formState.email}
+
+Message:
+${formState.message}
+
+---
+Sent from nayekah.dev portfolio contact form
+      `)
+      
+      window.location.href = `mailto:nayakaghana39@gmail.com?subject=${subject}&body=${body}`
+      
+      setError("Opening your email client... If this doesn't work, please email me directly at nayakaghana39@gmail.com")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -60,7 +115,7 @@ export function ContactSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mx-auto max-w-2xl text-muted-foreground"
         >
-          Have a project in mind or want to collaborate? Feel free to reach out.
+          Have a project in mind or want to collaborate? Feel free to reach out. I'll get back to you as soon as possible!
         </motion.p>
       </div>
 
@@ -74,7 +129,11 @@ export function ContactSection() {
           <Card>
             <CardContent className="p-6">
               {isSubmitted ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center py-8 text-center"
+                >
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/20">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -93,16 +152,23 @@ export function ContactSection() {
                     </svg>
                   </div>
                   <h3 className="mb-2 text-xl font-semibold">Message Sent!</h3>
-                  <p className="text-muted-foreground">Thank you for reaching out. I&apos;ll get back to you soon.</p>
-                </div>
+                  <p className="text-muted-foreground">Thank you for reaching out. I&apos;ll get back to you soon at nayakaghana39@gmail.com.</p>
+                </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="space-y-2">
                     <label
                       htmlFor="name"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      Name
+                      Name *
                     </label>
                     <Input
                       id="name"
@@ -111,6 +177,7 @@ export function ContactSection() {
                       onChange={handleChange}
                       placeholder="Your name"
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                   <div className="space-y-2">
@@ -118,7 +185,7 @@ export function ContactSection() {
                       htmlFor="email"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      Email
+                      Email *
                     </label>
                     <Input
                       id="email"
@@ -128,6 +195,7 @@ export function ContactSection() {
                       onChange={handleChange}
                       placeholder="your.email@example.com"
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                   <div className="space-y-2">
@@ -135,7 +203,7 @@ export function ContactSection() {
                       htmlFor="message"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      Message
+                      Message *
                     </label>
                     <Textarea
                       id="message"
@@ -145,6 +213,7 @@ export function ContactSection() {
                       placeholder="Your message"
                       rows={5}
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -179,6 +248,16 @@ export function ContactSection() {
                       </span>
                     )}
                   </Button>
+                  
+                  <p className="text-xs text-muted-foreground text-center">
+                    Or email me directly at{" "}
+                    <a 
+                      href="mailto:nayakaghana39@gmail.com" 
+                      className="text-primary hover:underline"
+                    >
+                      nayakaghana39@gmail.com
+                    </a>
+                  </p>
                 </form>
               )}
             </CardContent>
@@ -188,4 +267,3 @@ export function ContactSection() {
     </section>
   )
 }
-
