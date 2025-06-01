@@ -192,8 +192,10 @@ function renderContent(content: string) {
   return elements
 }
 
-export default async function BlogPost({ params }: { params: { slug: string } }) {
-  const post = await getBlogPost(params.slug)
+// Updated for Next.js 15 - params is now a Promise
+export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = await getBlogPost(slug)
   
   if (!post) {
     notFound()
@@ -283,7 +285,7 @@ export default async function BlogPost({ params }: { params: { slug: string } })
   )
 }
 
-// Generate static params for all blog posts
+// Generate static params for all blog posts - Updated for Next.js 15
 export async function generateStaticParams() {
   try {
     const dataDirectory = path.join(process.cwd(), 'data')
